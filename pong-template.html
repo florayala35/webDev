@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Pong</title>
+        <style>
+        h1 {
+            text-align: center;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        #playfield {
+            position: relative;
+            border: 2px;
+            border-style: solid;
+            margin-left: auto;
+            margin-right: auto;
+            width: 1000px;
+            height: 600px;
+        }
+
+        .paddle {
+            position: absolute;
+            background-color: black;
+            width: 10px;
+            height: 200px;
+            top:195px;  
+        }
+
+        
+        #paddle2 {
+            left: 990px;  
+        }  
+
+        #ball {
+            position: absolute;
+            background-color: black;
+            width: 10px;
+            height: 10px;
+            top: 295px;
+            left: 495px;
+        }
+        </style>
+</head>
+
+
+<body>
+    <h1>Pong</h1>
+    <h2 id="points">0 : 0</h2>
+    
+    <div id="playfield">                            <!-- le ponemos id a cada elemento: playfield, paddle 1 y 2, ball y  a los puntos-->
+        <div id="paddle1" class="paddle"></div>
+        <div id="paddle2" class="paddle"></div>      
+        <div id="ball"></div>
+    </div>
+
+    <script>
+        (function () {
+            //pixel constants
+            
+            const PADDLE_START_Y= "195px";
+            const PADDLE_SPEED = 3;
+            const PADDLE_HEIGHT = 200;         // paddle con 200 de altura y 10 de ancho
+            const PADDLE_WIDTH = 10;
+            
+            const BALL_START_X = "295px";      //posiciones iniciales de la pelota.
+            const BALL_START_Y = "495px";
+            const BALL_SPEED = 9;       
+            const BALL_RADIUS = 10;            // pelota con 10 de RADIO.
+
+            const PLAYFIELD_HEIGHT = 600;      //campo de juego de 600 altura y 1000 ancho
+            const PLAYFIELD_WIDTH = 1000;   
+            
+            
+
+            // html elements as defined above
+            var paddle1 = document.getElementById('paddle1');
+            var paddle2 = document.getElementById('paddle2');
+            var ball = document.getElementById('ball');
+            var points = document.getElementById('points');
+
+            // state
+           
+            var xDelta = BALL_SPEED;
+            var yDelta = BALL_SPEED;
+            var angle = (Math.floor(Math.random()*90)-45);
+
+            // general game state
+            var gameRunning = false;
+
+            // paddle positions
+            var pointsPlayer1 = 0;
+            var pointsPlayer2 = 0;
+
+            // up/down game key states for player 1
+            var down1 = false;
+            var up1 = false;
+
+            // listening of any key being pressed   // presiono alguna tecla, cambio valor a true y empiezo el juego.
+            document.addEventListener('keydown', function (e) {
+                var canStartGame = !gameRunning && !down1 && !up1;
+                switch (e.key) {
+                    case 'ArrowDown': down1 = true; break;
+                    case 'ArrowUp': up1 = true; break;
+                }
+                if (canStartGame && (down1 || up1)) { 
+                    //init game if not running and a game key is pressed
+                    initGame();
+                    gameRunning = true;
+                }
+            });
+
+            // listening for key release    // dejo de presionar la tecla 
+            document.addEventListener('keyup', function (e) {
+                switch (e.key) {
+                    case 'ArrowDown': down1 = false; break;
+                    case 'ArrowUp': up1 = false; break;
+                }
+            });
+
+            function updatePoints() {
+                points.childNodes[0].remove();
+                points.appendChild(document.createTextNode(pointsPlayer1 + " : " + pointsPlayer2));
+            }
+
+
+            // initializes a new game
+            function initGame() {
+                //init values and update UI first time...
+                ball.style.top = BALL_START_X;
+                ball.style.left = BALL_START_Y;
+                paddle1.style.top=PADDLE_START_Y;
+                paddle2.style.top=PADDLE_START_Y;
+                angle = (Math.floor(Math.random()*90)-45);
+
+            }
+
+            function updateBallPosition(){
+
+                var xBall = ball.style.left;
+                var yBall = ball.style.top;
+
+                xBall.replace("px","");
+                yBall.replace("px","");     
+
+                xBall = parseInt(xBall);
+                yBall = parseInt(yBall);
+
+                xBall = xBall + xDelta * Math.cos(angle*(Math.PI/180));//(Math.cos(angle * (Math.PI / 180)) * xDelta) + xBall; 
+                yBall = yBall + yDelta * Math.sin(angle*(Math.PI/180));//(Math.sin(angle * (Math.PI / 180)) * yDelta) + yBall;
+
+               updateBall(xBall, yBall);
+
+                //ball.style.left = xBall + "px";
+                //ball.style.top = yBall + "px";
+
+            }
+
+            function updateBall(x,y){
+                ball.style.left = x + "px";
+                ball.style.top = y + "px";
+
+                updateBallDirection(x,y);
+
+            }
+
+            function updateBallDirection(x, y){
+        
+                //wall
+                if((y <= 0) || ((y+BALL_RADIUS)  >= PLAYFIELD_HEIGHT)){
+                    yDelta *= -1;
+                }
+                
+                //left paddle
+                if(x <= 0){
+                    updateBallHitPaddle(y,paddle1.style.top,"right")
+                }
+
+                //right paddle
+                if((x+BALL_RADIUS) >= PLAYFIELD_WIDTH-5){
+                    updateBallHitPaddle(y, paddle2.style.top,"left")
+                }
+            }
+
+            function updateBallHitPaddle(yBall, yPaddle, player){
+
+                if(!(((yBall+BALL_RADIUS) >= yPaddle) && ((yBall+BALL_RADIUS) <= (yPaddle + PADDLE_HEIGHT)))){
+                    xDelta *= -1;
+                    yDelta *= -1;
+                    angle = Math.abs(((PADDLE_HEIGHT/2)-yBall))*0,45;
+                
+                }
+                else{//if((((yBall+BALL_RADIUS) < yPaddle) || (yBall > ((yPaddle+BALL_RADIUS) + PADDLE_HEIGHT)))) {
+                    if(player == "left"){
+                        pointsPlayer1 += 1;
+                    }else if(player == "right"){
+                        pointsPlayer2 += 1;
+                    }
+
+                    updatePoints();
+                    gameRunning = false;
+                    initGame();
+
+                }
+
+            }
+
+            function updatePaddle1(yBall){
+                if((down1 == true) && ((paddle1.style.top +PADDLE_HEIGHT) < PLAYFIELD_HEIGHT)){
+                    movePaddle(PADDLE_SPEED);
+                }else if((up1 == true) && (paddle1.style.top > 0)){
+                    movePaddle(-PADDLE_SPEED);
+                }
+            }            
+
+            function movePaddle(paddleDelta){
+                var yPaddle = paddle1.style.top;
+                yPaddle.replace("px",""); 
+                yPaddle = parseInt(yPaddle);
+                paddle1.style.top = yPaddle + paddleDelta + "px";
+            }
+
+            function updatePaddle2(yBall){
+                
+                var yPaddle = paddle2.style.top;
+                yPaddle.replace("px",""); 
+                yPaddle = parseInt(yPaddle);
+
+
+                if((yPaddle > yBall-PADDLE_HEIGHT/2) && (yPaddle > 0)){
+                    paddle2.style.top = yPaddle - (PADDLE_SPEED) + "px";
+                }
+                else if((yPaddle < yBall-PADDLE_HEIGHT/2) && ((yPaddle+PADDLE_HEIGHT) < PLAYFIELD_HEIGHT)){
+                    paddle2.style.top = yPaddle + (PADDLE_SPEED) + "px";
+                }
+                  
+            }
+
+
+            // called per frame. Update the game, 
+            // i.e. move the ball a little, move the paddles, check for collisions and handle them 
+            function gameloop() {
+                if (gameRunning) {
+                    // play game...
+                    updatePaddle1();
+                    
+                    updateBallPosition();
+                    
+
+                    var yBall = ball.style.top;
+                    yBall.replace("px",""); 
+                    yBall = parseInt(yBall);
+
+                    updatePaddle2(yBall);                 
+
+                }else{
+                    // wait for game to start...
+                }
+            }
+
+            //initGame(); 
+            
+            //start the game loop. 
+            setInterval(gameloop, 17); // 17 equals about 60 frames per second. In case your computer can't manage it, change it to a higher value
+        })  ();
+    </script>
+</body>
+
+</html>
